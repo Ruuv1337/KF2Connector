@@ -5,7 +5,7 @@ KF2 Statistics module.
 
 ## Contacts
 `
-Discord: [object Object]#3827
+Discord: [object Object]#1000
 `
 
 ## Install
