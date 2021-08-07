@@ -10,6 +10,18 @@ $webhookurl = "DISCORD WEB HOOK URL";
 $BotName = "Killing Floor 2 Server";
 $apiKey = "STEAM API KEY";
 
+
+$json_data = null;
+$timestamp = date("c", strtotime("now"));
+
+//If SaveToFile=False
+$postData = file_get_contents('php://input');
+//If SaveToFile=True
+//$postData = file_get_contents( 'C:/KF2Server/KFGame/Stats' . '/StatsRealTime.ctr' );
+
+$data = json_decode($postData, true);
+
+
 function getConnection()
 {
     global $mysql_host, $mysql_user, $mysql_pass, $mysql_db, $mysql_port;
@@ -219,11 +231,6 @@ function UpdatePlayer($playerList, $conn, $session)
 //        include        '%sprogdir%/userdata/config/nginx_fastcgi_params.txt';
 //    }
 //}
-
-$json_data = null;
-$timestamp = date("c", strtotime("now"));
-$postData = file_get_contents('php://input');
-$data = json_decode($postData, true);
 
 //=======For Debug=======
 //$logFile = __DIR__ . '/data.log';
