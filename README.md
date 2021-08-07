@@ -11,7 +11,7 @@ Discord: [object Object]#1000
 ## Install
 ```
 1. Push Connector.u to KF2Server\KFGame\BrewedPC\
-2. Open LinuxServer-KFGame.ini (or PCServer-KFGame.ini for Windows)
+2. Open PCServer-KFGame.ini
 2.1 find [KFGame.KFGameEngine] block.
 2.2 add line "ServerActors=Connector.ConnectorActor"
 
