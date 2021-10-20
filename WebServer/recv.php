@@ -243,7 +243,6 @@ if ($data['code'] === "KF2_MSG")
     $PlayerName = $data['content']['name'];
     $msg = $data['content']['message'];
     $steamID = $data['content']['steamID'];
-    $apiKey = "DA9F7F57D3BED770612FD4CF314E8615";
 
     $steamContent = file_get_contents("https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key=$apiKey&steamids=$steamID");
     $json = json_decode($steamContent);
@@ -321,7 +320,7 @@ if ($data['code'] === "KF2_LOBBY_UPDATE")
                     "color" => hexdec( "ffff33" ),
         
                     "title" => "Завершена волна - $currentwave",
-                    "description" => "$map | $gamedifficulty | $gameID | ",
+                    "description" => "$map | $gamedifficulty",
         
                     "footer" => [
                         "text" => "Нихерасе",
