@@ -24,7 +24,7 @@ CREATE TABLE `kf2_session`  (
   `totalwave` int(11) NOT NULL DEFAULT 0,
   `currentwave` int(11) NOT NULL DEFAULT 0,
   `wavestarted` int(11) NOT NULL DEFAULT 0,
-  `waveisactive` int(11) NOT NULL DEFAULT 0,
+  `trader` int(11) NOT NULL DEFAULT 0,
   `totalZedKilled` int(11) NOT NULL DEFAULT 0,
   `timestamp` timestamp(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0) ON UPDATE CURRENT_TIMESTAMP(0),
   `lastwave` int(11) NOT NULL DEFAULT 0,
