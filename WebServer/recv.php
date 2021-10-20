@@ -35,19 +35,18 @@ function getConnection()
     return $conn;
 }
 
-function StartNewGame($NewSession, $MapName)
+function StartNewGame($NewSession, $MapName, $gameID)
 {
     $conn = getConnection();
 
-    $oldSession = $conn->query("SELECT session, mapname FROM `kf2_session` WHERE active='1' LIMIT 1;");
+    $oldSession = $conn->query("SELECT session, mapname FROM `kf2_session` WHERE active='$gameID' LIMIT 1;");
     $oldSession = $oldSession->fetch_row();
     $oldMapName = $oldSession[1];
     $oldSession = $oldSession[0];
 
     $playersRows = $conn->query("SELECT id, headshots, kills, assists, deaths, dosh, damagedealt, damagetaken, accuracy, hsaccuracy FROM `kf2_players` WHERE last_session='$oldSession';");
 
-    while ($playersData = $playersRows->fetch_array())
-    {
+    while($playersData = $playersRows->fetch_array()) {
         $playerID = $playersData['id'];
         $playerHS = $playersData['headshots'];
         $playerKills = $playersData['kills'];
@@ -62,21 +61,18 @@ function StartNewGame($NewSession, $MapName)
         $chkStats = "SELECT id FROM `kf2_trackstats` WHERE pid='$playerID' AND mapname='$oldMapName';";
         $chkStats = $conn->query($chkStats);
         $chkStats = $chkStats->num_rows;
-
-        if ($chkStats)
+    
+        if ($chkStats) 
         {
             $PrevDamage = $conn->query("SELECT dmgdealt FROM `kf2_trackstats` WHERE pid='$playerID' AND mapname='$oldMapName';");
             $PrevDamage = $PrevDamage->fetch_row();
             $PrevDamage = intval($PrevDamage[0]);
 
-            if ($PrevDamage < $playerDD)
-            {
+            if ($PrevDamage < $playerDD) {
                 $updStats = "UPDATE `kf2_trackstats` SET headshots='$playerHS', kills='$playerKills', assists='$playerAssists', deaths='$playerDeaths', doshearn='$playerDosh', dmgdealt='$playerDD', dmgtaken='$playerDT', accuracy='$playerA', hsaccuracy='$playerHSA'  WHERE pid='$playerID' AND mapname='$oldMapName';";
                 $conn->query($updStats);
             }
-        }
-        else
-        {
+        } else {
             $addStats = "INSERT INTO `kf2_trackstats` (pid, headshots, kills, assists, deaths, doshearn, dmgdealt, dmgtaken, accuracy, hsaccuracy, mapname) VALUES ('$playerID', '$playerHS', '$playerKills', '$playerAssists', '$playerDeaths', '$playerDosh', '$playerDD', '$playerDT', '$playerA', '$playerHSA', '$oldMapName');";
             $conn->query($addStats);
         }
@@ -86,38 +82,36 @@ function StartNewGame($NewSession, $MapName)
     $conn->query("UPDATE `kf2_players` SET last_session='None' WHERE last_session='$oldSession';");
 
     //Update Active Session
-    $updSession = "UPDATE `kf2_session` SET active='0' WHERE active='1';";
+    $updSession = "UPDATE `kf2_session` SET active='0' WHERE active='$gameID';";
     $conn->query($updSession);
 
-    $addSession = "INSERT INTO `kf2_session` (session, mapname, active) VALUES ('$NewSession', '$MapName', '1');";
+    $addSession = "INSERT INTO `kf2_session` (session, mapname, active) VALUES ('$NewSession', '$MapName', '$gameID');";
     $conn->query($addSession);
 
     $conn->close();
 }
 
-function UpdateSession($sessionData, $conn)
+function UpdateSession($sessionData, $conn, $gameID)
 {
     $session = $sessionData['session'];
     $sessionMapName = $sessionData['mapname'];
     $sessionGD = $sessionData['gamedifficulty'];
     $sessionTotalWave = $sessionData['totalwave'];
     $sessionCurrentWave = $sessionData['currentwave'];
-    $sessionWaveStarted = $sessionData['wavestarted']; //mby delete?
-    $sessionWaveIsActive = $sessionData['waveisactive']; //MyKFGRI.bTraderIsOpen mby replace?
+    $sessionWaveStarted = $sessionData['wavestarted'];
+    $sessionWaveTrader = $sessionData['trader'];
     $sessionTotalZedKilled = $sessionData['totalZedKilled'];
 
     $chkSession = "SELECT id FROM `kf2_session` WHERE session='$session' AND mapname='$sessionMapName';";
     $chkSession = $conn->query($chkSession);
     $chkSession = $chkSession->num_rows;
 
-    if ($chkSession)
+    if ($chkSession) 
     {
-        $updSession = "UPDATE `kf2_session` SET difficulty='$sessionGD', totalwave='$sessionTotalWave', currentwave='$sessionCurrentWave', wavestarted='$sessionWaveStarted', waveisactive='$sessionWaveIsActive', totalZedKilled='$sessionTotalZedKilled' WHERE session='$session' AND mapname='$sessionMapName';";
+        $updSession = "UPDATE `kf2_session` SET difficulty='$sessionGD', totalwave='$sessionTotalWave', currentwave='$sessionCurrentWave', wavestarted='$sessionWaveStarted', trader='$sessionWaveTrader', totalZedKilled='$sessionTotalZedKilled' WHERE session='$session' AND mapname='$sessionMapName';";
         $conn->query($updSession);
-    }
-    else
-    {
-        $addSession = "INSERT INTO `kf2_session` (session, mapname, difficulty, totalwave, currentwave, wavestarted, waveisactive, totalZedKilled, active) VALUES ('$session', '$sessionMapName', '$sessionGD', '$sessionTotalWave', '$sessionCurrentWave', '$sessionWaveStarted', '$sessionWaveIsActive', '$sessionTotalZedKilled', '1');";
+    } else {
+        $addSession = "INSERT INTO `kf2_session` (session, mapname, difficulty, totalwave, currentwave, wavestarted, trader, totalZedKilled, active) VALUES ('$session', '$sessionMapName', '$sessionGD', '$sessionTotalWave', '$sessionCurrentWave', '$sessionWaveStarted', '$sessionWaveTrader', '$sessionTotalZedKilled', '$gameID');";
         $conn->query($addSession);
     }
 
@@ -126,8 +120,7 @@ function UpdateSession($sessionData, $conn)
     //Write Stats
     $playersRows = $conn->query("SELECT id, headshots, kills, assists, deaths, dosh, damagedealt, damagetaken, accuracy, hsaccuracy FROM `kf2_players` WHERE last_session='$session';");
 
-    while ($playersData = $playersRows->fetch_array())
-    {
+    while($playersData = $playersRows->fetch_array()) {
         $playerID = $playersData['id'];
         $playerHS = $playersData['headshots'];
         $playerKills = $playersData['kills'];
@@ -142,21 +135,18 @@ function UpdateSession($sessionData, $conn)
         $chkStats = "SELECT id FROM `kf2_trackstats` WHERE pid='$playerID' AND mapname='$sessionMapName';";
         $chkStats = $conn->query($chkStats);
         $chkStats = $chkStats->num_rows;
-
-        if ($chkStats)
+    
+        if ($chkStats) 
         {
             $PrevDamage = $conn->query("SELECT dmgdealt FROM `kf2_trackstats` WHERE pid='$playerID' AND mapname='$sessionMapName';");
             $PrevDamage = $PrevDamage->fetch_row();
             $PrevDamage = intval($PrevDamage[0]);
 
-            if ($PrevDamage < $playerDD)
-            {
+            if ($PrevDamage < $playerDD) {
                 $updStats = "UPDATE `kf2_trackstats` SET headshots='$playerHS', kills='$playerKills', assists='$playerAssists', deaths='$playerDeaths', doshearn='$playerDosh', dmgdealt='$playerDD', dmgtaken='$playerDT', accuracy='$playerA', hsaccuracy='$playerHSA'  WHERE pid='$playerID' AND mapname='$sessionMapName';";
                 $conn->query($updStats);
             }
-        }
-        else
-        {
+        } else {
             $addStats = "INSERT INTO `kf2_trackstats` (pid, headshots, kills, assists, deaths, doshearn, dmgdealt, dmgtaken, accuracy, hsaccuracy, mapname) VALUES ('$playerID', '$playerHS', '$playerKills', '$playerAssists', '$playerDeaths', '$playerDosh', '$playerDD', '$playerDT', '$playerA', '$playerHSA', '$sessionMapName');";
             $conn->query($addStats);
         }
@@ -246,114 +236,153 @@ function UpdatePlayer($playerList, $conn, $session)
 //file_put_contents($logFile, $logWrite);
 //========================
 
-if ($data['code'] === "KF2_MSG")
+if ($data['code'] === "KF2_MSG") 
 {
+    $GID = $data['content']['gameid'];
     $UID = $data['content']['uid'];
     $PlayerName = $data['content']['name'];
     $msg = $data['content']['message'];
     $steamID = $data['content']['steamID'];
+    $apiKey = "DA9F7F57D3BED770612FD4CF314E8615";
 
     $steamContent = file_get_contents("https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key=$apiKey&steamids=$steamID");
     $json = json_decode($steamContent);
 
-    $avatar = $json
-        ->response
-        ->players[0]->avatarfull;
-    $country = $json
-        ->response
-        ->players[0]->loccountrycode;
-
-    if ($avatar == '')
-    {
-        $json_data = json_encode(["username" => "$PlayerName", "avatar_url" => "https://cdn.akamai.steamstatic.com/steamcommunity/public/images/avatars/d9/d94f23591f0c3509f139a1737b26cbbc4fee258b_full.jpg", "tts" => false, //Voice
-        "content" => "$msg"
-
-        ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-    }
-    else
-    {
-        $json_data = json_encode(["username" => "$PlayerName ($country)", "avatar_url" => "$avatar", "tts" => false, //Voice
-        "content" => "$msg"
-
-        ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    $avatar = $json->response->players[0]->avatarfull;
+    $country = $json->response->players[0]->loccountrycode;
+    
+    if ($avatar == '') {
+        $json_data = json_encode([
+            "username" => "$PlayerName [Server: $GID]",
+            "avatar_url" => "https://cdn.akamai.steamstatic.com/steamcommunity/public/images/avatars/d9/d94f23591f0c3509f139a1737b26cbbc4fee258b_full.jpg",
+            "tts" => false, //Voice
+    
+            "content" => "$msg"
+        
+        ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE );
+    } else {
+        $json_data = json_encode([
+            "username" => "$PlayerName ($country) [Server: $GID]",
+            "avatar_url" => "$avatar",
+            "tts" => false, //Voice
+    
+            "content" => "$msg"
+        
+        ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE );
     }
 }
 
-if ($data['code'] === "KF2_LOBBY_UPDATE")
+if ($data['code'] === "KF2_LOBBY_UPDATE") 
 {
     $conn = getConnection();
     $thisSess = $data['content']['session'];
     $totalZedKilled = $data['content']['totalZedKilled'];
-    $currentwave = $data['content']['currentwave'];
+    $currentwave= $data['content']['currentwave'];
     $gamedifficulty = $data['content']['gamedifficulty'];
     $map = strtoupper($data['content']['mapname']);
     $playersNum = count($data['content']['playerlist']);
-    $waveisactive = ($data['content']['waveisactive'] == 0 ? "Yes" : "No");
+    $wavetrader = ($data['content']['trader'] == 1 ? "Yes" : "No");
+    $gameID = $data['content']['gameid'];
 
-    UpdateSession($data['content'], $conn);
-
-    $LastWave = $conn->query("SELECT lastwave FROM `kf2_session` WHERE active='1' AND session='$thisSess' AND mapname='$map' LIMIT 1;");
+    UpdateSession($data['content'], $conn, $gameID);
+    
+    $LastWave = $conn->query("SELECT lastwave FROM `kf2_session` WHERE active='$gameID' AND session='$thisSess' AND mapname='$map' LIMIT 1;");
     $LastWave = $LastWave->fetch_row();
     $LastWave = $LastWave[0];
 
-    if ($waveisactive == "Yes" && $playersNum > 0 && $LastWave < $currentwave)
-    {
+    if ($wavetrader == "Yes" && $playersNum > 0 && $LastWave < $currentwave) {
 
         $TopRows = $conn->query("SELECT pid FROM `kf2_trackstats` WHERE mapname = '$map' ORDER BY dmgdealt DESC LIMIT 3;");
         $TopPlayers = [];
 
-        while ($row = $TopRows->fetch_array())
-        {
+        while($row = $TopRows->fetch_array()) {
             $playerID = $row['pid'];
-
+    
             $PlayerUID = $conn->query("SELECT name FROM `kf2_players` WHERE id='$playerID';");
             $PlayerUID = $PlayerUID->fetch_row();
             $PlayerName = $PlayerUID[0];
-
+    
             $PlayerName = str_replace("@", "", $PlayerName);
             $PlayerName = str_replace("*", "", $PlayerName);
-
+            
             array_push($TopPlayers, $PlayerName);
         }
 
-        $newData = ["username" => $BotName, "avatar_url" => "https://cdn.akamai.steamstatic.com/steamcommunity/public/images/avatars/d9/d94f23591f0c3509f139a1737b26cbbc4fee258b_full.jpg", "tts" => false, //Voice
-        "embeds" => [["type" => "rich", "url" => "https://kf2stats.tix.su", "timestamp" => $timestamp, "color" => hexdec("ffff33") ,
-
-        "title" => "Завершена волна - $currentwave", "description" => "$map | $gamedifficulty",
-
-        "footer" => ["text" => "Нихерасе", "icon_url" => "https://xxx365.info/wp-content/uploads/2018/05/101998_17342864-1756198841360792-3405319389011615295-n-1024x1010.jpg"],
-
-        "fields" => [["name" => "Total Zed Killed", "value" => $totalZedKilled, "inline" => true], ["name" => "Current Players", "value" => "$playersNum/12", "inline" => true], ["name" => "Top Players on This Map", "value" => $TopPlayers[0] . " | " . $TopPlayers[1] . " | " . $TopPlayers[2], "inline" => false], ]]]];
-
-        for ($i = 0;$i < $playersNum;$i++)
+        $newData = [
+            "username" => $BotName,
+            "avatar_url" => "https://cdn.akamai.steamstatic.com/steamcommunity/public/images/avatars/d9/d94f23591f0c3509f139a1737b26cbbc4fee258b_full.jpg",
+            "tts" => false, //Voice
+        
+            "embeds" => [
+                [
+                    "type" => "rich",
+                    "url" => "https://kf2stats.tix.su",
+                    "timestamp" => $timestamp,
+                    "color" => hexdec( "ffff33" ),
+        
+                    "title" => "Завершена волна - $currentwave",
+                    "description" => "$map | $gamedifficulty | $gameID | ",
+        
+                    "footer" => [
+                        "text" => "Нихерасе",
+                        "icon_url" => "https://xxx365.info/wp-content/uploads/2018/05/101998_17342864-1756198841360792-3405319389011615295-n-1024x1010.jpg"
+                    ],
+            
+                    "fields" => [
+                        [
+                            "name" => "Total Zed Killed",
+                            "value" => $totalZedKilled,
+                            "inline" => true
+                        ],
+                        [
+                            "name" => "Current Players",
+                            "value" => "$playersNum/12",
+                            "inline" => true
+                        ],
+                        [
+                            "name" => "Top Players on This Map",
+                            "value" => $TopPlayers[0]." | ".$TopPlayers[1]." | ".$TopPlayers[2],
+                            "inline" => false
+                        ],
+                    ]
+                ]
+            ]
+        ];
+        
+        for ($i=0; $i < $playersNum; $i++) 
         {
             $playerName = $data['content']['playerlist'][$i]['playername'];
-
+        
             $playerDD = $data['content']['playerlist'][$i]['damagedealt'];
             $playerDeaths = $data['content']['playerlist'][$i]['deaths'];
-
+        
             $test = ["name" => $playerName, "value" => "$playerDD | $playerDeaths", "inline" => true];
             array_push($newData['embeds'][0]['fields'], $test);
         };
+        
+        $json_data = json_encode($newData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE );
 
-        $json_data = json_encode($newData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-
-        $updStatsWave = "UPDATE `kf2_session` SET lastwave='$currentwave' WHERE active='1' AND session='$thisSess' AND mapname='$map';";
+        $updStatsWave = "UPDATE `kf2_session` SET lastwave='$currentwave' WHERE active='$gameID' AND session='$thisSess' AND mapname='$map';";
         $conn->query($updStatsWave);
     }
 
     if ($conn) $conn->close();
 }
 
-if ($data['code'] === "KF2_MATCHCREATED")
+if ($data['code'] === "KF2_MATCHCREATED") 
 {
-    StartNewGame($data['content']['session'], $data['content']['map']);
+    $GID = $data['content']['gameid'];
+    StartNewGame($data['content']['session'], $data['content']['map'], $GID);
 
     $map = strtoupper($data['content']['map']);
     $json_data = json_encode([
 
-    "username" => "Killing Floor 2 Server", "avatar_url" => "https://cdn.akamai.steamstatic.com/steamcommunity/public/images/avatars/d9/d94f23591f0c3509f139a1737b26cbbc4fee258b_full.jpg", "tts" => false, //Voice
-    "content" => "Запущен новый матч на карте $map", ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        "username" => "Killing Floor 2 (REDEYE) Server [№ $GID]",
+        "avatar_url" => "https://cdn.akamai.steamstatic.com/steamcommunity/public/images/avatars/d9/d94f23591f0c3509f139a1737b26cbbc4fee258b_full.jpg",
+        "tts" => false, //Voice
+
+        "content" => "Запущен новый матч на карте $map",
+    ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE );
 }
 
 if ($json_data === null)
