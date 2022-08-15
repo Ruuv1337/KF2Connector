@@ -1,7 +1,7 @@
 # KF2Connector
 KF2 Statistics module.
 
-## [Example Web Stats](//kf2stats.tix.su/ "Go to..") 
+## [Example Web Stats](//kf2.tix.su/ "Go to..") 
 
 ## Contacts
 `
